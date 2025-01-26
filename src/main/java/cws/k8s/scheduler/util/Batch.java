@@ -31,6 +31,14 @@ public class Batch {
         closeTime = System.currentTimeMillis();
     }
 
+    public int lenUnready() {
+        int len;
+        synchronized (unready) {
+            len = unready.size();
+        }
+        return len;
+    }
+
     public void registerTask( Task task ){
         assert ready != null;
         assert unready != null;

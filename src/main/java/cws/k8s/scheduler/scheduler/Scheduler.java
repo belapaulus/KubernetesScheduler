@@ -45,7 +45,7 @@ public abstract class Scheduler implements Informable {
     private final List<Task> unscheduledTasks = new ArrayList<>( 100 );
     private final List<Task> unfinishedTasks = new ArrayList<>( 100 );
     final Map<String, Task> tasksByPodName = new HashMap<>();
-    final Map<Integer, Task> tasksById = new HashMap<>();
+    final Map<Long, Task> tasksById = new HashMap<>();
     private final Watch watcher;
     private final TaskprocessingThread schedulingThread;
     private final TaskprocessingThread finishThread;
@@ -56,7 +56,7 @@ public abstract class Scheduler implements Informable {
         this.execution = execution;
         this.name = System.getenv( "SCHEDULER_NAME" ) + "-" + execution;
         this.namespace = namespace;
-        log.trace( "Register scheduler for " + this.name );
+        log.trace("Register scheduler for {}", this.name);
         this.client = client;
         this.dns = config.dns.endsWith( "/" ) ? config.dns : config.dns + "/";
         this.dag = new DAG();
@@ -70,9 +70,8 @@ public abstract class Scheduler implements Informable {
         finishThread = new TaskprocessingThread(unfinishedTasks, this::terminateTasks );
         finishThread.start();
 
-        log.info("Start watching");
         watcher = client.pods().inNamespace( this.namespace ).watch(podWatcher);
-        log.info("Watching");
+        log.info("registered pod watcher for execution {}", this.execution);
     }
 
     /* Abstract methods */
@@ -188,6 +187,7 @@ public abstract class Scheduler implements Informable {
     }
 
     public void schedulePod(PodWithAge pod ) {
+        log.info("schedule pod called for pod {}", pod.getName());
         Task task = changeStateOfTask( pod, State.UNSCHEDULED );
         //If null, task was already unscheduled
         if ( task == null ) {
@@ -204,7 +204,10 @@ public abstract class Scheduler implements Informable {
             }
         } else {
             Batch batch = task.getBatch();
+            log.info("pod belongs to batch {}", batch.id);
             batch.informSchedulable( task );
+            log.info("moved task from unready to ready. task.name {}, task.id {}", task.getConfig().getRunName(), task.getId());
+            log.info("trying to schedule batch");
             synchronized (batchHelper) {
                 tryToScheduleBatch( batch );
             }
@@ -219,11 +222,15 @@ public abstract class Scheduler implements Informable {
             synchronized (unscheduledTasks){
                 final List<Task> tasksToScheduleAndDestroy = batch.getTasksToScheduleAndDestroy();
                 unscheduledTasks.addAll(tasksToScheduleAndDestroy);
-                unscheduledTasks.notifyAll();
                 synchronized ( upcomingTasks ){
                     tasksToScheduleAndDestroy.forEach(upcomingTasks::remove);
                 }
+                log.info("added tasks from batch to unscheduledTasks. tasks in batch: {}, unscheduled tasks: {}", tasksToScheduleAndDestroy, unscheduledTasks);
+                log.info("notifying task processing threads");
+                unscheduledTasks.notifyAll();
             }
+        } else {
+            log.info("could not yet schedule batch because batch.closed is {} and len(batch.unready) is {}", batch.isClosed(), batch.lenUnready());
         }
     }
 
@@ -245,27 +252,39 @@ public abstract class Scheduler implements Informable {
 
     /* External access to Tasks */
 
-    public void addTask( int id, TaskConfig conf ) {
-        final Task task = new Task( conf, dag );
-        synchronized ( tasksByPodName ) {
-            if ( !tasksByPodName.containsKey( conf.getRunName() ) ) {
-                tasksByPodName.put( conf.getRunName(), task );
+    public void addTask( long id, TaskConfig conf ) {
+        synchronized (tasksById) {
+            if (tasksById.containsKey(id)) {
+                log.info("ignoring task with known id: {}", id);
+                return;
             }
         }
-        synchronized ( tasksById ) {
-            if ( !tasksById.containsKey( id ) ) {
-                tasksById.put( id, task );
+        final Task task = new Task( conf, dag );
+        synchronized ( tasksByPodName ) {
+            if (tasksByPodName.containsKey( conf.getRunName() )) {
+                throw new RuntimeException("trying to add task with runname that is already in the list");
             }
+            tasksByPodName.put( conf.getRunName(), task );
+        }
+        synchronized ( tasksById ) {
+            if (tasksById.containsKey( id )) {
+                throw new RuntimeException("trying to add task with id that is already in the list");
+            }
+            tasksById.put( id, task );
         }
         synchronized ( upcomingTasks ) {
             upcomingTasks.add( task );
         }
+        log.info("added task to tasksByPodName, tasksById and upcomingTasks. TaskId: {}, PodName: {}", id, conf.getRunName());
         if( currentBatchInstance != null ){
             currentBatchInstance.registerTask( task );
+            log.info("added task to unready list in batch");
+        } else {
+            log.info("task not added to batch as current batch instance is null");
         }
     }
 
-    public boolean removeTask( int id ) {
+    public boolean removeTask( long id ) {
         final Task task;
         synchronized ( tasksById ) {
             task = tasksById.get( id );
@@ -289,7 +308,7 @@ public abstract class Scheduler implements Informable {
         return new HashMap<>();
     }
 
-    public TaskState getTaskState( int id ) {
+    public TaskState getTaskState( long id ) {
         synchronized ( tasksById ) {
             if ( tasksById.containsKey( id ) ) {
                 return tasksById.get( id ).getState();
@@ -381,9 +400,13 @@ public abstract class Scheduler implements Informable {
     /* Helper */
 
     public void startBatch(){
+        // batchHelper ist ein leeres Objekt, dass scheinbar nur zur synchronisation dient
         synchronized (batchHelper){
             if ( currentBatchInstance == null || currentBatchInstance.isClosed() ){
                 currentBatchInstance = new Batch( currentBatch++ );
+                log.info("set current batch instance to batch with id {}", currentBatchInstance.id);
+            } else {
+                log.info("ignored start batch request because there is an open batch");
             }
         }
     }
@@ -391,6 +414,8 @@ public abstract class Scheduler implements Informable {
     public void endBatch( int tasksInBatch ){
         synchronized (batchHelper){
             currentBatchInstance.close( tasksInBatch );
+            log.info("closed current batch instance");
+            log.info("trying to schedul batch");
             tryToScheduleBatch( currentBatchInstance );
         }
     }

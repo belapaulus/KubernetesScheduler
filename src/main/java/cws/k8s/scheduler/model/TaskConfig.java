@@ -13,6 +13,8 @@ import java.util.Map;
 @ToString
 public class TaskConfig {
 
+    // TODO rename task to label
+    // TODO why the task and name redundancy
     private final String task;
     private final String name;
     private final Map< String, List<Object>> schedulerParams;

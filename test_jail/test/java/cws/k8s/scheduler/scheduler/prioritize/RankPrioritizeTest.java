@@ -1,7 +1,7 @@
 package cws.k8s.scheduler.scheduler.prioritize;
 
 import cws.k8s.scheduler.dag.DAG;
-import cws.k8s.scheduler.dag.InputEdge;
+import cws.k8s.scheduler.dag.Edge;
 import cws.k8s.scheduler.dag.Process;
 import cws.k8s.scheduler.dag.Vertex;
 import cws.k8s.scheduler.model.Task;
@@ -24,11 +24,11 @@ class RankPrioritizeTest {
         final Process b = new Process("b", 2);
         final Process c = new Process("c", 3);
         List<Vertex> vertexList = Arrays.asList( a, b, c );
-        List<InputEdge> inputEdges = new LinkedList<>();
-        inputEdges.add( new InputEdge(1, 1,2) );
-        inputEdges.add( new InputEdge(2, 2,3) );
+        List<Edge> edges = new LinkedList<>();
+        edges.add( new Edge(1, 1,2) );
+        edges.add( new Edge(2, 2,3) );
         dag.registerVertices( vertexList );
-        dag.registerEdges(inputEdges);
+        dag.registerEdges(edges);
 
         final Task c1 = new Task( new TaskConfig( "c" ), dag );
         Thread.sleep( 10 );

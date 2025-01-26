@@ -1,7 +1,7 @@
 package cws.k8s.scheduler.rest;
 
 import cws.k8s.scheduler.dag.DAG;
-import cws.k8s.scheduler.dag.InputEdge;
+import cws.k8s.scheduler.dag.Edge;
 import cws.k8s.scheduler.client.KubernetesClient;
 import cws.k8s.scheduler.dag.Vertex;
 import cws.k8s.scheduler.model.SchedulerConfig;
@@ -95,7 +95,7 @@ public class SchedulerRestController {
 
         final String namespace = config.namespace;
         final String strategy = config.strategy;
-        log.info( "Register execution: {} strategy: {} cf: {} config: {}", execution, strategy, config.costFunction, config );
+        log.info( "receive register execution request. execution is {} with config {}", execution, config );
 
         Scheduler scheduler;
 
@@ -112,9 +112,10 @@ public class SchedulerRestController {
                 if ( split.length <= 2 ) {
                     switch ( split[0].toLowerCase() ) {
                         case "fifo": prioritize = new FifoPrioritize(); break;
+                        case "rcpe": prioritize = new RCPEPrioritize(); break;
                         case "rank": prioritize = new RankPrioritize(); break;
-                        case "rank_min": prioritize = new RankMinPrioritize(); break;
-                        case "rank_max": prioritize = new RankMaxPrioritize(); break;
+                        case "rankmin": prioritize = new RankMinPrioritize(); break;
+                        case "rankmax": prioritize = new RankMaxPrioritize(); break;
                         case "random": case "r": prioritize = new RandomPrioritize(); break;
                         case "max": prioritize = new MaxInputPrioritize(); break;
                         case "min": prioritize = new MinInputPrioritize(); break;
@@ -141,6 +142,7 @@ public class SchedulerRestController {
 
         schedulerHolder.put( execution, scheduler );
         client.addInformable( scheduler );
+        log.info("registered scheduler as informable with kubernetes client");
 
         return new ResponseEntity<>( HttpStatus.OK );
 
@@ -160,9 +162,10 @@ public class SchedulerRestController {
      * @return Parameters the scheduler suggests for the task
      */
     @PostMapping("/v1/scheduler/{execution}/task/{id}")
-    ResponseEntity<? extends Object> registerTask( @PathVariable String execution, @PathVariable int id, @RequestBody TaskConfig config ) {
+    ResponseEntity<?> registerTask(@PathVariable String execution, @PathVariable long id, @RequestBody TaskConfig config ) {
 
         log.trace( execution + " " + config.getTask() + " got: " + config );
+        log.info("received register task request for execution {}. task name is {}", execution, config.getTask());
 
         final Scheduler scheduler = schedulerHolder.get( execution );
         if ( scheduler == null ) {
@@ -194,7 +197,7 @@ public class SchedulerRestController {
      * @return
      */
     @DeleteMapping("/v1/scheduler/{execution}/task/{id}")
-    ResponseEntity<? extends Object> deleteTask( @PathVariable String execution, @PathVariable int id ) {
+    ResponseEntity<? extends Object> deleteTask( @PathVariable String execution, @PathVariable long id ) {
 
         final Scheduler scheduler = schedulerHolder.get( execution );
         if ( scheduler == null ) {
@@ -215,6 +218,7 @@ public class SchedulerRestController {
     @PutMapping("/v1/scheduler/{execution}/startBatch")
     ResponseEntity<String> startBatch( @PathVariable String execution ) {
 
+        log.info("received start batch request for execution {}", execution);
         final Scheduler scheduler = schedulerHolder.get( execution );
         if ( scheduler == null ) {
             return noSchedulerFor( execution );
@@ -233,6 +237,7 @@ public class SchedulerRestController {
     @PutMapping("/v1/scheduler/{execution}/endBatch")
     ResponseEntity<String> endBatch( @PathVariable String execution, @RequestBody int tasksInBatch ) {
 
+        log.info("received end batch request for execution {}", execution);
         final Scheduler scheduler = schedulerHolder.get( execution );
         if ( scheduler == null ) {
             return noSchedulerFor( execution );
@@ -256,7 +261,7 @@ public class SchedulerRestController {
      * @return boolean
      */
     @GetMapping("/v1/scheduler/{execution}/task/{id}")
-    ResponseEntity<? extends Object> getTaskState( @PathVariable String execution, @PathVariable int id ) {
+    ResponseEntity<?> getTaskState(@PathVariable String execution, @PathVariable long id ) {
 
         final Scheduler scheduler = schedulerHolder.get( execution );
         if ( scheduler == null ) {
@@ -315,8 +320,8 @@ public class SchedulerRestController {
         if ( scheduler == null ) {
             return noSchedulerFor( execution );
         }
-
-        scheduler.getDag().registerVertices( vertices );
+        log.info("dag is empty: {}", scheduler.getDag().isEmpty());
+        scheduler.getDag().registerVertices( vertices);
 
         return new ResponseEntity<>( HttpStatus.OK );
 
@@ -329,7 +334,7 @@ public class SchedulerRestController {
             @ApiResponse(responseCode = "400", description = "No scheduler found for this execution",
                     content = @Content) })
     @DeleteMapping("/v1/scheduler/{execution}/DAG/vertices")
-    ResponseEntity<String> deleteVertices( @PathVariable String execution, @RequestBody int[] vertices ) {
+    ResponseEntity<String> deleteVertices( @PathVariable String execution, @RequestBody long[] vertices ) {
 
         log.trace( "submit vertices: {}", vertices );
 
@@ -351,7 +356,7 @@ public class SchedulerRestController {
             @ApiResponse(responseCode = "400", description = "No scheduler found for this execution",
                     content = @Content) })
     @PostMapping("/v1/scheduler/{execution}/DAG/edges")
-    ResponseEntity<String> addEdges( @PathVariable String execution, @RequestBody List<InputEdge> edges ) {
+    ResponseEntity<String> addEdges( @PathVariable String execution, @RequestBody List<Edge> edges ) {
 
         log.trace( "submit edges: {}", edges );
 

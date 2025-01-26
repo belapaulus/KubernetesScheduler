@@ -3,19 +3,20 @@ package cws.k8s.scheduler.model;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.math.BigDecimal;
 
+@Getter
 @ToString
 public class Requirements implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     public static final Requirements ZERO = new Requirements();
 
-    @Getter
     private BigDecimal cpu;
-    @Getter
     private BigDecimal ram;
 
     public Requirements( BigDecimal cpu, BigDecimal ram ) {
@@ -24,7 +25,7 @@ public class Requirements implements Serializable {
     }
 
     public Requirements(){
-        this( BigDecimal.ZERO, BigDecimal.ZERO );
+        this(BigDecimal.ZERO, BigDecimal.ZERO );
     }
 
     public Requirements addToThis( Requirements requirements ){

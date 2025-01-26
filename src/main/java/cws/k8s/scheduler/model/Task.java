@@ -1,7 +1,7 @@
 package cws.k8s.scheduler.model;
 
 import cws.k8s.scheduler.dag.DAG;
-import cws.k8s.scheduler.dag.Process;
+import cws.k8s.scheduler.dag.Vertex;
 import cws.k8s.scheduler.model.tracing.TraceRecord;
 import cws.k8s.scheduler.util.Batch;
 import lombok.Getter;
@@ -25,7 +25,7 @@ public class Task {
     private final TaskState state = new TaskState();
 
     @Getter
-    private final Process process;
+    private final Vertex vertex;
 
     @Getter
     private PodWithAge pod = null;
@@ -49,7 +49,7 @@ public class Task {
 
     public Task( TaskConfig config, DAG dag ) {
         this.config = config;
-        this.process = dag.getByProcess( config.getTask() );
+        this.vertex = dag.getVertexByLabel( config.getTask() );
     }
 
     public String getWorkingDir(){

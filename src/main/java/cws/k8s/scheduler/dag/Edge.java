@@ -4,17 +4,13 @@ import lombok.*;
 
 @Getter
 @ToString
-@EqualsAndHashCode
-@RequiredArgsConstructor( access = AccessLevel.PACKAGE )
+@RequiredArgsConstructor
+@NoArgsConstructor(force = true, access = AccessLevel.PRIVATE)
 public class Edge {
 
-    private final int uid;
-    private final String label;
-    private final Vertex from;
-    private final Vertex to;
-
-    Edge(int uid, Vertex from, Vertex to) {
-        this(uid, null, from, to);
-    }
+    final int uid;
+    final String label = null;
+    final long from;
+    final long to;
 
 }

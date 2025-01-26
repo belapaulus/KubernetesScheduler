@@ -50,6 +50,7 @@ public class FairAssign extends NodeAssign {
                 traceRecord.setSchedulerBestCost( bestScore );
                 traceRecord.setSchedulerNodesCost( costs );
                 alignment.add( new NodeTaskAlignment( bestNode, task ) );
+                log.info( "-->", bestNode.getName(), availableByNode.get(bestNode));
                 availableByNode.get( bestNode ).subFromThis( pod.getRequest() );
                 log.info( "--> " + bestNode.getName() );
             }

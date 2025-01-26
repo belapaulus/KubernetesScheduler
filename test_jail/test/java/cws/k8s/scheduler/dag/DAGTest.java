@@ -62,7 +62,7 @@ public class DAGTest {
         final String[] ancestors = setToArrayProcesses(expectedAncestors);
         assertArrayEquals( "Descendants of " + vertex.getLabel(), descendants, setToArrayProcesses(vertex.getDescendants()) );
         assertArrayEquals( "Ancestors of " + vertex.getLabel(), ancestors, setToArrayProcesses(vertex.getAncestors()) );
-        assertEquals( rank, vertex.getRank() );
+        assertEquals( rank, vertex.getUpwardRank() );
     }
 
     private String[] setToArrayProcesses(Set<Process> set) {
@@ -107,28 +107,28 @@ public class DAGTest {
         return vertexList;
     }
 
-    public List<InputEdge> genEdgeList(){
-        List<InputEdge> inputEdges = new LinkedList<>();
-        inputEdges.add( new InputEdge(1,13,1) );
-        inputEdges.add( new InputEdge(2,1,2) );
-        inputEdges.add( new InputEdge(3,1,3) );
-        inputEdges.add( new InputEdge(4,1,4) );
-        inputEdges.add( new InputEdge(5,1,5) );
-        inputEdges.add( new InputEdge(6,2,6) );
-        inputEdges.add( new InputEdge(7,3,7) );
-        inputEdges.add( new InputEdge(8,4,7) );
-        inputEdges.add( new InputEdge(9,4,9) );
-        inputEdges.add( new InputEdge(10,5,9) );
-        inputEdges.add( new InputEdge(11,6,8) );
-        inputEdges.add( new InputEdge(12,7,8) );
-        inputEdges.add( new InputEdge(13,9,8) );
-        inputEdges.add( new InputEdge(14,8,10) );
-        inputEdges.add( new InputEdge(15,9,11) );
-        inputEdges.add( new InputEdge(16,10,12) );
-        inputEdges.add( new InputEdge(17,11,12) );
+    public List<Edge> genEdgeList(){
+        List<Edge> edges = new LinkedList<>();
+        edges.add( new Edge(1,13,1) );
+        edges.add( new Edge(2,1,2) );
+        edges.add( new Edge(3,1,3) );
+        edges.add( new Edge(4,1,4) );
+        edges.add( new Edge(5,1,5) );
+        edges.add( new Edge(6,2,6) );
+        edges.add( new Edge(7,3,7) );
+        edges.add( new Edge(8,4,7) );
+        edges.add( new Edge(9,4,9) );
+        edges.add( new Edge(10,5,9) );
+        edges.add( new Edge(11,6,8) );
+        edges.add( new Edge(12,7,8) );
+        edges.add( new Edge(13,9,8) );
+        edges.add( new Edge(14,8,10) );
+        edges.add( new Edge(15,9,11) );
+        edges.add( new Edge(16,10,12) );
+        edges.add( new Edge(17,11,12) );
 
-        Collections.shuffle( inputEdges );
-        return inputEdges;
+        Collections.shuffle(edges);
+        return edges;
     }
 
     @Test
@@ -137,8 +137,8 @@ public class DAGTest {
             final DAG dag = new DAG();
             List<Vertex> vertexList = genVertexList();
             dag.registerVertices( vertexList );
-            List<InputEdge> inputEdges = genEdgeList();
-            dag.registerEdges( inputEdges );
+            List<Edge> edges = genEdgeList();
+            dag.registerEdges(edges);
             expectedResult ( vertexList );
         }
     }
@@ -148,17 +148,17 @@ public class DAGTest {
         for (int q = 0; q < 500 ; q++) {
             final DAG dag = new DAG();
             List<Vertex> vertexList = genVertexList();
-            List<InputEdge> inputEdges = genEdgeList();
+            List<Edge> edges = genEdgeList();
             for (int i = 0; i < 500; i++) {
-                int index = new Random().nextInt( inputEdges.size() );
-                final InputEdge remove = inputEdges.remove(index);
+                int index = new Random().nextInt( edges.size() );
+                final Edge remove = edges.remove(index);
                 final Vertex operator = new Operator("Operator", vertexList.size() + 1 );
                 vertexList.add( operator );
-                inputEdges.add( new InputEdge( i * 2, remove.getFrom(), operator.getUid() ) );
-                inputEdges.add( new InputEdge( i * 2 + 1, operator.getUid(), remove.getTo() ) );
+                edges.add( new Edge( i * 2, remove.getFrom(), operator.getUid() ) );
+                edges.add( new Edge( i * 2 + 1, operator.getUid(), remove.getTo() ) );
             }
             dag.registerVertices( vertexList );
-            dag.registerEdges( inputEdges );
+            dag.registerEdges(edges);
             expectedResult ( vertexList );
         }
     }
@@ -180,13 +180,13 @@ public class DAGTest {
         vertexList.add(filter);
         vertexList.add(b);
 
-        List<InputEdge> inputEdges = new LinkedList<>();
-        inputEdges.add( new InputEdge(1,1,2) );
-        inputEdges.add( new InputEdge(2,2,3) );
-        inputEdges.add( new InputEdge(3,3,4) );
+        List<Edge> edges = new LinkedList<>();
+        edges.add( new Edge(1,1,2) );
+        edges.add( new Edge(2,2,3) );
+        edges.add( new Edge(3,3,4) );
 
         dag.registerVertices( vertexList );
-        dag.registerEdges( inputEdges );
+        dag.registerEdges(edges);
 
         assertEquals( new HashSet<>(), a.getAncestors() );
         final HashSet<Process> descA = new HashSet<>();
@@ -241,15 +241,15 @@ public class DAGTest {
         vertexList.add(filter2);
         vertexList.add(b);
 
-        List<InputEdge> inputEdges = new LinkedList<>();
-        inputEdges.add( new InputEdge(1,1,2) );
-        inputEdges.add( new InputEdge(2,2,3) );
-        inputEdges.add( new InputEdge(3,2,5) );
-        inputEdges.add( new InputEdge(4,3,4) );
-        inputEdges.add( new InputEdge(5,5,4) );
+        List<Edge> edges = new LinkedList<>();
+        edges.add( new Edge(1,1,2) );
+        edges.add( new Edge(2,2,3) );
+        edges.add( new Edge(3,2,5) );
+        edges.add( new Edge(4,3,4) );
+        edges.add( new Edge(5,5,4) );
 
         dag.registerVertices( vertexList );
-        dag.registerEdges( inputEdges );
+        dag.registerEdges(edges);
 
         for (int i = 0; i < 2; i++) {
 
@@ -369,15 +369,15 @@ public class DAGTest {
         final Process d = new Process("d", 4);
         final Process e = new Process("e", 5);
         List<Vertex> vertexList = Arrays.asList( a, b, c, d, e );
-        List<InputEdge> inputEdges = new LinkedList<>();
-        inputEdges.add( new InputEdge(1, 1,2) );
-        inputEdges.add( new InputEdge(2, 1,3) );
-        inputEdges.add( new InputEdge(3, 2,4) );
-        inputEdges.add( new InputEdge(4, 3,4) );
-        inputEdges.add( new InputEdge(5, 3,5) );
-        inputEdges.add( new InputEdge(6, 4,5) );
+        List<Edge> edges = new LinkedList<>();
+        edges.add( new Edge(1, 1,2) );
+        edges.add( new Edge(2, 1,3) );
+        edges.add( new Edge(3, 2,4) );
+        edges.add( new Edge(4, 3,4) );
+        edges.add( new Edge(5, 3,5) );
+        edges.add( new Edge(6, 4,5) );
         dag.registerVertices( vertexList );
-        dag.registerEdges(inputEdges);
+        dag.registerEdges(edges);
 
         isSameProc(                                      new HashSet<>(),                            set( dag, "b","c","d","e" ), dag.getByProcess("a"), 3 );
         isSameEdge(                                      new HashSet<>(), setFrom( dag, 1, new int[]{2, 3},new int[]{1, 2} ), dag.getByProcess("a") );
@@ -424,15 +424,15 @@ public class DAGTest {
         final Process d = new Process("d", 4);
         final Process e = new Process("e", 5);
         List<Vertex> vertexList = Arrays.asList( a, b, c, d, e );
-        List<InputEdge> inputEdges = new LinkedList<>();
-        inputEdges.add( new InputEdge(1, 1,2) );
-        inputEdges.add( new InputEdge(2, 1,3) );
-        inputEdges.add( new InputEdge(3, 2,4) );
-        inputEdges.add( new InputEdge(4, 3,4) );
-        inputEdges.add( new InputEdge(5, 4,5) );
-        inputEdges.add( new InputEdge(6, 4,5) );
+        List<Edge> edges = new LinkedList<>();
+        edges.add( new Edge(1, 1,2) );
+        edges.add( new Edge(2, 1,3) );
+        edges.add( new Edge(3, 2,4) );
+        edges.add( new Edge(4, 3,4) );
+        edges.add( new Edge(5, 4,5) );
+        edges.add( new Edge(6, 4,5) );
         dag.registerVertices( vertexList );
-        dag.registerEdges(inputEdges);
+        dag.registerEdges(edges);
 
         isSameProc(                                      new HashSet<>(),                            set( dag, "b","c","d","e" ), dag.getByProcess("a"), 3 );
         isSameEdge(                                      new HashSet<>(), setFrom( dag, 1, new int[]{2, 3},new int[]{1, 2} ), dag.getByProcess("a") );
@@ -504,23 +504,23 @@ public class DAGTest {
 
         List<Vertex> vertexList = Arrays.asList(o, a, b, c, d, e, f, g, h, i);
 
-        List<InputEdge> inputEdges = Arrays.asList(
-                new InputEdge( 1, o.getUid(), a.getUid()),
-                new InputEdge( 2, o.getUid(), b.getUid()),
-                new InputEdge( 3, a.getUid(), c.getUid()),
-                new InputEdge( 4, a.getUid(), g.getUid()),
-                new InputEdge( 5, b.getUid(), c.getUid()),
-                new InputEdge( 6, b.getUid(), d.getUid()),
-                new InputEdge( 7, c.getUid(), e.getUid()),
-                new InputEdge( 8, d.getUid(), f.getUid()),
-                new InputEdge( 9, e.getUid(), h.getUid()),
-                new InputEdge( 10, f.getUid(), h.getUid()),
-                new InputEdge( 11, g.getUid(), i.getUid()),
-                new InputEdge( 12, h.getUid(), i.getUid())
+        List<Edge> edges = Arrays.asList(
+                new Edge( 1, o.getUid(), a.getUid()),
+                new Edge( 2, o.getUid(), b.getUid()),
+                new Edge( 3, a.getUid(), c.getUid()),
+                new Edge( 4, a.getUid(), g.getUid()),
+                new Edge( 5, b.getUid(), c.getUid()),
+                new Edge( 6, b.getUid(), d.getUid()),
+                new Edge( 7, c.getUid(), e.getUid()),
+                new Edge( 8, d.getUid(), f.getUid()),
+                new Edge( 9, e.getUid(), h.getUid()),
+                new Edge( 10, f.getUid(), h.getUid()),
+                new Edge( 11, g.getUid(), i.getUid()),
+                new Edge( 12, h.getUid(), i.getUid())
         );
 
         dag.registerVertices(vertexList);
-        dag.registerEdges(inputEdges);
+        dag.registerEdges(edges);
 
         isSameProc(                                         new HashSet<>(),            set( dag, "a","b","c","d","e","f","g","h","i" ), o, 5 );
         isSameEdge(                                         new HashSet<>(),     setFrom( dag, 1, new int[]{2, 3},new int[]{1, 2} ), o );
